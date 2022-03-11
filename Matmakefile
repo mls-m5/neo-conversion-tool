@@ -1,0 +1,17 @@
+
+# using matmake2: https://github.com/laserskold/matmake2
+
+main
+  out = main
+  src =
+    src/*.cpp
+  config =
+    c++17
+    Wall
+  command = [exe]
+
+all
+  in = @main
+  includes =
+    include
+

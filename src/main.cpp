@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <thread>
 #include <vector>
 
 // https://stackoverflow.com/questions/2896600/how-to-replace-all-occurrences-of-a-character-in-string
@@ -75,10 +76,6 @@ std::string getTitle(std::filesystem::path path) {
     auto file = std::ifstream{path};
     for (std::string line; std::getline(file, line);) {
         if (!line.empty()) {
-            //            auto name = std::string{};
-            //            for (auto &c : line) {
-            //                name += convert(c);
-            //            }
             auto name = convert(line);
 
             for (auto c : name) {
@@ -115,6 +112,19 @@ void convert(std::filesystem::path path, std::ostream &stream = std::cout) {
     }
 }
 
+int getIndexFromFilename(std::filesystem::path path) {
+    auto filename = path.filename();
+
+    for (auto c : filename.string()) {
+        if (c <= '9' && c >= '0') {
+            return c - '0';
+        }
+    }
+
+    std::cerr << "could not find number in filename " << path << "\n";
+    std::terminate();
+}
+
 #ifndef __EMSCRIPTEN__
 
 int main(int argc, char **argv) {
@@ -142,6 +152,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    auto files = std::vector<int>{};
+
     if (std::filesystem::is_directory(path)) {
         for (auto &it : std::filesystem::directory_iterator{tmpPath}) {
             auto outPath =
@@ -152,6 +164,8 @@ int main(int argc, char **argv) {
                 std::cerr << "failed to convert file " << outPath << "\n";
                 std::terminate();
             }
+
+            files.push_back(getIndexFromFilename(it.path()));
         }
     }
     else {
@@ -161,7 +175,16 @@ int main(int argc, char **argv) {
     std::filesystem::remove_all(tmpPath);
 
     if (settings.shouldClear) {
-        return std::system("neotools files clear");
+        for (auto i : files) {
+            using namespace std::chrono_literals;
+            std::this_thread::sleep_for(5s); // neo needs to restart inbetween
+            std::cout << "clearing file " << i << std::endl;
+            if (std::system(
+                    ("neotools files clear " + std::to_string(i)).c_str())) {
+                std::cerr << "failed to clear file " << i << "\n";
+                std::terminate();
+            }
+        }
     }
 }
 

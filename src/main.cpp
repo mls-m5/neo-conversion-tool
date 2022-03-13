@@ -1,9 +1,11 @@
 
 #include "emscriptenstuff.h"
 #include "settings.h"
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <thread>
 #include <vector>
 
@@ -125,6 +127,26 @@ int getIndexFromFilename(std::filesystem::path path) {
     std::terminate();
 }
 
+std::string getDateString() {
+    auto pad = [](int i) {
+        if (i < 10) {
+            return "0" + std::to_string(i);
+        }
+        else {
+            return std::to_string(i);
+        }
+    };
+
+    std::stringstream ss;
+
+    auto t = std::time(nullptr);
+    auto info = std::localtime(&t);
+
+    ss << 20 << pad(info->tm_year % 100) << "-" << pad(info->tm_mon) << "-"
+       << pad(info->tm_mday);
+    return ss.str();
+}
+
 #ifndef __EMSCRIPTEN__
 
 int main(int argc, char **argv) {
@@ -157,7 +179,9 @@ int main(int argc, char **argv) {
     if (std::filesystem::is_directory(path)) {
         for (auto &it : std::filesystem::directory_iterator{tmpPath}) {
             auto outPath =
-                (path / getTitle(it.path())).replace_extension(".txt");
+                (path / (getDateString() + " " + getTitle(it.path())))
+                    .replace_extension(".txt")
+                    .string();
             auto of = std::ofstream{outPath};
             convert(it.path(), of);
             if (!std::filesystem::exists(outPath)) {

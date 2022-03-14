@@ -96,8 +96,6 @@ std::string getTitle(std::filesystem::path path) {
 }
 
 void convert(std::filesystem::path path, std::ostream &stream = std::cout) {
-    std::cout << path << std::endl;
-
     if (path.extension() != ".txt") {
         return;
     }
@@ -142,7 +140,7 @@ std::string getDateString() {
     auto t = std::time(nullptr);
     auto info = std::localtime(&t);
 
-    ss << 20 << pad(info->tm_year % 100) << "-" << pad(info->tm_mon) << "-"
+    ss << 20 << pad(info->tm_year % 100) << "-" << pad(info->tm_mon + 1) << "-"
        << pad(info->tm_mday);
     return ss.str();
 }
@@ -183,6 +181,8 @@ int main(int argc, char **argv) {
                     .replace_extension(".txt")
                     .string();
             auto of = std::ofstream{outPath};
+            std::cout << it.path() << " -> " << outPath << std::endl;
+
             convert(it.path(), of);
             if (!std::filesystem::exists(outPath)) {
                 std::cerr << "failed to convert file " << outPath << "\n";

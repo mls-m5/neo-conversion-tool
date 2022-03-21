@@ -11,11 +11,10 @@ else()
 endif()
 
 
-
 add_executable(
     neo_char_convert
     src/main.cpp
-    src/emscriptenstuff.cpp
+    src/viewhtml.cpp
     )
 
 target_compile_features(neo_char_convert PRIVATE cxx_std_17)

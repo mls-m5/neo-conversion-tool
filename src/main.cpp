@@ -1,6 +1,7 @@
 
 #include "emscriptenstuff.h"
 #include "settings.h"
+#include "viewhtml.h"
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -150,32 +151,19 @@ std::string getDateString() {
 int main(int argc, char **argv) {
     const auto settings = Settings{argc, argv};
 
-    auto tmpPath = std::filesystem::path{"/tmp/neo-char-conv"};
     auto path = settings.outputPath;
 
-    if (path.empty()) {
-        std::cout << "please specify existing path with --path\n";
-        return 1;
-    }
-
-    if (!std::filesystem::is_directory(path)) {
-        std::cout << path << "is not a existing directory\n";
-        return 1;
-    }
-
-    std::filesystem::remove_all(tmpPath);
-    std::filesystem::create_directories(tmpPath);
-
-    if (std::system(
-            ("neotools files read-all -p " + tmpPath.string()).c_str())) {
+    if (std::system(("neotools files read-all -p " + settings.tmpPath.string())
+                        .c_str())) {
         std::cerr << "loading of neo files failed";
-        return 1;
+        std::terminate();
     }
 
-    auto files = std::vector<int>{};
+    auto fileIndices = std::vector<int>{};
+    auto convertedFiles = std::vector<std::filesystem::path>{};
 
     if (std::filesystem::is_directory(path)) {
-        for (auto &it : std::filesystem::directory_iterator{tmpPath}) {
+        for (auto &it : std::filesystem::directory_iterator{settings.tmpPath}) {
             auto outPath =
                 (path / (getDateString() + " " + getTitle(it.path())))
                     .replace_extension(".txt")
@@ -189,17 +177,32 @@ int main(int argc, char **argv) {
                 std::terminate();
             }
 
-            files.push_back(getIndexFromFilename(it.path()));
+            fileIndices.push_back(getIndexFromFilename(it.path()));
+            convertedFiles.push_back(outPath);
         }
     }
     else {
-        convert(path);
+        std::cerr << "specified directory is not a path\n";
+        std::terminate();
     }
 
-    std::filesystem::remove_all(tmpPath);
+    if (settings.shouldView) {
+        auto oFilePath = settings.outputPath / "index.html";
+        auto oFile = std::ofstream{oFilePath};
+        if (!oFile.is_open()) {
+            std::cerr << "could not open " << oFilePath << "for writing\n";
+            std::terminate();
+        }
+        viewHtml(convertedFiles, oFile);
+        std::system(("xdg-open " + oFilePath.string()).c_str());
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1000ms);
+    }
+
+    std::filesystem::remove_all(settings.tmpPath);
 
     if (settings.shouldClear) {
-        for (auto i : files) {
+        for (auto i : fileIndices) {
             using namespace std::chrono_literals;
             std::this_thread::sleep_for(5s); // neo needs to restart inbetween
             std::cout << "clearing file " << i << std::endl;

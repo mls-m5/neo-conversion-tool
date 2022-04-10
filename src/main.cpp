@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
         for (auto &it : std::filesystem::directory_iterator{settings.tmpPath}) {
             auto outPath =
                 (path / (getDateString() + " " + getTitle(it.path())))
-                    .replace_extension(".txt")
+                    .replace_extension(".md")
                     .string();
             auto of = std::ofstream{outPath};
             std::cout << it.path() << " -> " << outPath << std::endl;
